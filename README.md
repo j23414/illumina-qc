@@ -1,7 +1,5 @@
 # illumina-qc
 
-
-
 * Preferentially use nf-core modules where available
 * Loads St Jude LSF config by default
 * Separate QC from downstream analysis
@@ -29,4 +27,13 @@ nextflow run j23414/illumina-qc \
 nextflow run j23414/illumina-qc \
   --reads "data/*_{R1,R2}_*.fastq.gz" \
   -profile stjude
+```
+
+## Optional post processing to get summary counts
+
+```bash
+python bin/get-summary-counts.py \
+  --columns "Total Sequences:readcount,%GC:gc,Sequences flagged as poor quality:bad" \
+  --input qc-results/multiqc/multiqc_data/multiqc_fastqc.txt \
+  --output summary_counts.tsv
 ```

@@ -6,71 +6,107 @@ from collections import defaultdict
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Extract R1/R2 read counts from MultiQC FastQC summary table"
+        description="Extract and rename MultiQC FastQC columns into R1/R2 summary table"
     )
+
+    parser.add_argument("-i", "--input", required=True, help="multiqc_fastqc.txt file from MultiQC")
+    parser.add_argument("-o", "--output", required=True)
+
     parser.add_argument(
-        "-i", "--input",
-        required=True,
-        help="multiqc_fastqc.txt file from MultiQC"
+        "-c", "--columns",
+        default="Total Sequences:readcount",
+        help='Comma-separated mappings like "Total Sequences:readcount,total_deduplicated_percentage:duplicated"'
     )
-    parser.add_argument(
-        "-o", "--output",
-        required=True,
-        help="Output CSV file"
-    )
+
     return parser.parse_args()
 
 
-def clean_sample(sample):
+def parse_column_map(column_string):
     """
-    Remove trailing _1 / _2 from FastQC sample names
+    Turns:
+        "Total Sequences:readcount,%GC:gc"
+
+    into:
+        {
+            "Total Sequences": "readcount",
+            "%GC": "gc"
+        }
     """
-    if sample.endswith("_1") or sample.endswith("_2"):
-        return sample[:-2]
-    return sample
+    mapping = {}
+
+    for item in column_string.split(","):
+        item = item.strip()
+
+        if ":" in item:
+            src, dst = item.split(":", 1)
+        else:
+            src = dst = item  # fallback: no rename
+
+        mapping[src.strip()] = dst.strip()
+
+    return mapping
 
 
-def infer_read_direction(sample):
-    if sample.endswith("_1"):
-        return "R1"
-    elif sample.endswith("_2"):
-        return "R2"
-    else:
-        return None
+def get_base_and_read(sample_name):
+    base, read = sample_name.rsplit("_", 1)
+    if read == "1":
+        return base, "R1"
+    elif read == "2":
+        return base, "R2"
+    return sample_name, None
 
 
 def main():
     args = parse_args()
+    colmap = parse_column_map(args.columns)
 
-    counts = defaultdict(lambda: {"R1": None, "R2": None})
+    data = defaultdict(lambda: defaultdict(dict))
 
-    with open(args.input, "r") as f:
+    with open(args.input) as f:
         reader = csv.DictReader(f, delimiter="\t")
 
         for row in reader:
             sample_raw = row["Sample"]
-            total = row["Total Sequences"]
+            base, read = get_base_and_read(sample_raw)
 
-            if not total or total == "NaN":
+            if read is None:
                 continue
 
-            total = int(float(total))
+            for src_col, new_name in colmap.items():
+                if src_col not in row:
+                    continue
 
-            if sample_raw.endswith("_1"):
-                base = sample_raw[:-2]
-                counts[base]["R1"] = total
-            elif sample_raw.endswith("_2"):
-                base = sample_raw[:-2]
-                counts[base]["R2"] = total
+                value = row[src_col]
+
+                # try numeric conversion
+                try:
+                    if value not in ("", "NaN"):
+                        value = float(value)
+                except ValueError:
+                    pass
+
+                data[base][read][new_name] = value
 
     with open(args.output, "w", newline="") as out:
         writer = csv.writer(out)
-        writer.writerow(["sample", "R1_readcount", "R2_readcount"])
 
-        for sample in sorted(counts.keys()):
-            r1 = counts[sample]["R1"]
-            r2 = counts[sample]["R2"]
-            writer.writerow([sample, r1, r2])
+        # header
+        header = ["sample"]
+        for _, new_name in colmap.items():
+            header.append(f"R1_{new_name}")
+            header.append(f"R2_{new_name}")
+
+        writer.writerow(header)
+
+        for sample in sorted(data.keys()):
+            row_out = [sample]
+
+            for _, new_name in colmap.items():
+                r1 = data[sample].get("R1", {}).get(new_name, "")
+                r2 = data[sample].get("R2", {}).get(new_name, "")
+                row_out.extend([r1, r2])
+
+            writer.writerow(row_out)
 
 
 if __name__ == "__main__":
