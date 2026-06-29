@@ -9,7 +9,7 @@ def parse_args():
         description="Extract and rename MultiQC FastQC columns into R1/R2 summary table"
     )
 
-    parser.add_argument("-i", "--input", required=True, help="multiqc_fastqc.txt file from MultiQC")
+    parser.add_argument("-i", "--input", default="qc-results/multiqc/multiqc_data/multiqc_fastqc.txt", help="multiqc_fastqc.txt file from MultiQC")
     parser.add_argument("-o", "--output", required=True)
 
     parser.add_argument(
