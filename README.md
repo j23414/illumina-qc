@@ -32,8 +32,8 @@ nextflow run j23414/illumina-qc \
 ## Optional post processing to get summary counts
 
 ```bash
-python bin/get-summary-counts.py \
-  --columns "Total Sequences:readcount,%GC:gc,Sequences flagged as poor quality:bad" \
+python illumina-qc/bin/get-summary-counts.py \
+  --columns "Total Sequences:readcount,Total Bases:total_bases,avg_sequence_length,Sequence length:length,total_deduplicated_percentage,%GC:gc,Sequences flagged as poor quality:bad" \
   --input qc-results/multiqc/multiqc_data/multiqc_fastqc.txt \
-  --output summary_counts.tsv
+  --output summary_counts.csv
 ```

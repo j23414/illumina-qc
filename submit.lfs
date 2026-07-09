@@ -15,8 +15,9 @@ source /home/jchang99/.bashrc
 conda activate nf-env
 
 module load htslib/1.22.1
+module load fastqc/0.12.1
+module load multiQC/1.15
 
 nextflow run j23414/illumina-qc \
-  --reads "illumina_reads/*_{R1,R2}_*.fastq.gz" \
-  -resume \
+  --samplesheet samplesheet.csv \
   -profile stjude
