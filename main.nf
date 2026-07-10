@@ -1,10 +1,10 @@
-include { FASTQC  } from './modules/nf-core/fastqc/main' 
+include { FASTP } from './modules/nf-core/fastp/main'
+include { FASTQC  } from './modules/nf-core/fastqc/main'
 include { MULTIQC } from './modules/nf-core/multiqc/main'
 
 workflow {
     main:
     // Illumina Reads
-
     if (params.samplesheet) {
       reads_ch = channel.fromPath(params.samplesheet)
         | splitCsv(header: true)
@@ -18,20 +18,33 @@ workflow {
         error "Please specify either --samplesheet samplesheet.csv or --reads 'data/*_{R1,R2}.fastq.gz'"
     }
 
-    // Run QC
-    FASTQC(reads_ch)
-    FASTQC.out.html
+    if(params.trim_adaptors == "fastp") {
+      adapter_ch = params.adapter_fasta ? file(params.adapter_fasta) : []
 
-    multiqc_input = FASTQC.out.html.map{meta, files -> files}
-    | mix(FASTQC.out.zip.map{meta, files -> files})
-    | flatten
-    | collect
-    | map {
-      n ->
-      def meta = [id: 'all']
-      return tuple(meta, n, [], [], [], [])
+      FASTP(
+        reads_ch.map { meta, reads -> tuple(meta, reads, adapter_ch)},
+        false,
+        false,
+        false)
+      trimmed_reads_ch = FASTP.out.reads
+    } else {
+      trimmed_reads_ch=reads_ch
     }
 
+    // Run QC
+    FASTQC(trimmed_reads_ch)
+    FASTQC.out.html
+
+      multiqc_input = FASTQC.out.html.map{meta, files -> files}
+      | mix(FASTQC.out.zip.map{meta, files -> files})
+      | flatten
+      | collect
+      | map {
+        n ->
+        def meta = [id: 'all']
+        return tuple(meta, n, [], [], [], [])
+      }
+
+
     MULTIQC(multiqc_input)
-    MULTIQC.out.report.view()
 }
