@@ -1,0 +1,34 @@
+%%metro title: j23414/illumina-qc
+%%metro line_order: definition
+%%metro mode: light
+%%metro line: fqgz | FASTQ.GZ | #c792ea
+%%metro line: html | HTML | #fbbf24
+
+graph LR
+
+    subgraph input [Input]
+        reads["Illumina paired-end reads"]
+    end
+
+    subgraph preprocessing [Optional Trimming]
+        fastp["FASTP trim adaptors"]
+        trimmed["Trimmed reads"]
+    end
+
+    subgraph qc [Quality Control Report]
+        fastqc["FASTQC"]
+    	multiqc["MULTIQC"]
+        report["MULTIQC report"]
+    end
+    
+    subgraph trimmed_reads [(Optional) Trimmed Reads]
+        
+    end
+
+    reads -->|fqgz| fastp
+    fastp -->|fqgz| fastqc
+    reads -->|fqgz| fastqc
+    fastqc -->|html| multiqc
+    multiqc -->|html| report
+    
+    fastp -->|fqgz| trimmed

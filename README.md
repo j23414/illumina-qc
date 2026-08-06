@@ -6,6 +6,8 @@
 * Accept either a samplesheet CSV (sample,R1,R2) or a FASTQ glob pattern
 * Allow QC to complete for valid samples even if one or more samples fail
 
+![](diagram.png)
+
 ## samplesheet input
 
 ```
