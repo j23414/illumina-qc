@@ -26,9 +26,15 @@ nextflow run j23414/illumina-qc \
 ## glob input
 
 ```bash
+# LSF
 nextflow run j23414/illumina-qc \
-  --reads "data/*_{R1,R2}_*.fastq.gz" \
+  --samplesheet samplesheet.csv \
   -profile stjude
+
+# Or locally
+nextflow run j23414/illumina-qc \
+  --samplesheet samplesheet.csv \
+  -profile conda --fastqc_cpus 4 --fastqc_memory '10 GB'
 ```
 
 ## Optional post processing to get summary counts
@@ -36,6 +42,6 @@ nextflow run j23414/illumina-qc \
 ```bash
 python illumina-qc/bin/get-summary-counts.py \
   --columns "Total Sequences:readcount,Total Bases:total_bases,avg_sequence_length,Sequence length:length,total_deduplicated_percentage,%GC:gc,Sequences flagged as poor quality:bad" \
-  --input qc-results/multiqc/multiqc_data/multiqc_fastqc.txt \
+  --input qc-results_fastp/multiqc/multiqc_data/multiqc_fastqc.txt \
   --output summary_counts.csv
 ```
