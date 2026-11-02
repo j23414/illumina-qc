@@ -27,6 +27,15 @@ workflow {
         false,
         false)
       trimmed_reads_ch = FASTP.out.reads
+
+      // Generate new samplesheet for next pipeline
+      trimmed_reads_ch
+      .map { meta, reads -> "${meta.id},fastp/${reads[0].fileName},fastp/${reads[1].fileName}" }
+      .collectFile(
+        name: "${params.outdir}_${params.trim_adaptors}/processed_samplesheet.csv",
+        seed: "sample,R1,R2",
+        newLine: true,
+      )
     } else {
       trimmed_reads_ch=reads_ch
     }
