@@ -2,6 +2,23 @@ include { FASTP } from './modules/nf-core/fastp/main'
 include { FASTQC  } from './modules/nf-core/fastqc/main'
 include { MULTIQC } from './modules/nf-core/multiqc/main'
 
+process SUMMARYCOUNT {
+  conda 'conda-forge::python=3.12'
+  input:
+    tuple val(meta), path(multiqc_tsv)
+
+  output:
+    path("summary_counts.csv")
+
+  script:
+  """
+  python ${workflow.projectDir}/bin/get-summary-counts.py \
+  --columns "${params.summary_columns}" \
+  --input $multiqc_tsv \
+  --output summary_counts.csv
+  """
+}
+
 workflow {
     main:
     // Illumina Reads
@@ -56,4 +73,5 @@ workflow {
 
 
     MULTIQC(multiqc_input)
+    SUMMARYCOUNT(MULTIQC.out.tsv)
 }
